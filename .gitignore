@@ -1,1 +1,4 @@
 .vscode
+src/models/*.joblib
+src/train_logs/*.txt
+*/__pycache__

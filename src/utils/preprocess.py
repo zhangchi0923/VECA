@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import os
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -15,7 +16,6 @@ fix_feat_name = ['att'] + [x[0] + x[1] for x in itertools.product(fix_base_cat, 
 
 def get_train_data(info_path: str):
     info = pd.read_excel(info_path, index_col=0)
-    
 
     levels = list(range(3, 12, 1))
     for i in range(info.shape[0]):
@@ -57,4 +57,4 @@ def feature_preprocess(train_data: pd.DataFrame, normalize=False):
         X_train = scaler.fit_transform(X_train)
         X_test = scaler.transform(X_test)
     
-    return X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train.astype(float).flatten(), y_test.astype(float).flatten(), np.array(cat_cols + num_cols)

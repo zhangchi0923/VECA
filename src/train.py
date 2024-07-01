@@ -38,26 +38,48 @@ parser.add_argument(
     default='./src/models/',
     help='Specify model persistent directory.'
 )
+parser.add_argument(
+    '--importance',
+    type=bool,
+    default=False,
+    help="Specify whether to output feature importances."
+)
+parser.add_argument(
+    '--shap',
+    type=bool,
+    default=False,
+    help='Specify whether to compute normalized shap values.'
+)
+parser.add_argument(
+    '--roc',
+    type=bool,
+    default=False,
+    help='Specify whether to analyze education grouped classification ROCs.'
+)
 args = parser.parse_args()
 
-info_dir = args.info_path
+info_dir = args.info_dir
 log_dir = args.log_dir
 model_name = args.model
 model_dir = args.model_dir
+_imp = args.importance
+_shap = args.shap
+_roc = args.roc
+
 logger = get_logger(log_dir)
 
 ## train
-train_data = get_train_data(log_dir)
+train_data = get_train_data(info_dir)
 
 if model_name == 'gbrt':
-    X_train, X_test, y_train, y_test = feature_preprocess(train_data=train_data, normalize=False)
+    X_train, X_test, y_train, y_test, cols = feature_preprocess(train_data=train_data, normalize=False)
     model = GradientBoostingRegressor(
         n_estimators=50,
         max_depth=3,
         learning_rate=0.1
     )
 else:
-    X_train, X_test, y_train, y_test = feature_preprocess(train_data=train_data, normalize=True)
+    X_train, X_test, y_train, y_test, cols = feature_preprocess(train_data=train_data, normalize=True)
     if model_name == 'mlp':
         model = MLPRegressor(
             hidden_layer_sizes=(16, 32, 16, 6),
@@ -81,23 +103,53 @@ else:
 model.fit(X_train, y_train)
 joblib.dump(model, f'{model_dir}{model_name}.joblib')
 logger.info(f'Trained {model_name} has been saved to {model_dir}')
-
+logger.info('--------------------------------------------------------')
 ## evaluation
 y_pred = model.predict(X_test)
 y_baseline = X_test[:, 6:].mean(axis=1)*30
 rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 mae = mean_absolute_error(y_test, y_pred)
 medae = median_absolute_error(y_test, y_pred)
-corr = pearsonr(y_pred, y_test)[0][0]
+corr = pearsonr(y_pred, y_test)[0]
 base_rmse = np.sqrt(mean_squared_error(y_test, y_baseline))
 base_mae = mean_absolute_error(y_test, y_baseline)
 base_medae = median_absolute_error(y_test, y_baseline)
-base_corr = pearsonr(y_baseline, y_test)[0][0]
+base_corr = pearsonr(y_baseline, y_test)[0]
 logger.info(f'{model_name} MedianAE on testing data: {medae} | Baseline: {base_medae}.')
 logger.info(f'{model_name} MAE on testing data: {mae} | Baseline: {base_mae}.')
 logger.info(f'{model_name} MSE on testing data: {rmse} | Baseline: {base_rmse}.')
 logger.info(f'{model_name} Pearson on testing data: {corr} | Baseline: {base_corr}.')
+logger.info('--------------------------------------------------------')
 
+if _imp:
+    imp_model = GradientBoostingRegressor()
+    imp_model.fit(X_train, y_train)
+    imp = imp_model.feature_importances_
+    ovr_ratio = [imp[0:2].sum(), imp[2:5].sum(), imp[5], imp[6:].sum()]
+    feat = ['Gender', 'Edu', 'Age', 'Task']
+    logger.info(
+        f'Feature importances from Gradient Boosting Regression.\
+            \nGender: {ovr_ratio[0]:.3f}\
+            \nEdu: {ovr_ratio[1]:.3f}\
+            \nAge: {ovr_ratio[2]:.3f}\
+            \nTask: {ovr_ratio[3]:.3f}'
+    )
+    logger.info('--------------------------------------------------------')
 
-
+if _shap:
+    import shap
+    shap_data = X_test
+    logger.info('Conducting shap analysis.')
+    logger.info('--------------------------------------------------------')
+    explainer = shap.KernelExplainer(model.predict, data=shap_data)
+    shape_values = explainer(shap_data)
+    ordered_shap = np.sort(np.abs(shape_values.values).mean(axis=0))
+    sum = ordered_shap.sum()
+    norm_shap = (ordered_shap/sum)
+    argsorts = np.argsort(np.abs(shape_values.values).mean(axis=0))
+    logger.info('--------------------------------------------------------')
+    logger.info('Shapley Values of Features')
+    logger.info('--------------------------------------------------------')
+    for col, imp in zip(cols[argsorts], norm_shap):
+        logger.info(f'{col:20}{imp:.4f}')
 
