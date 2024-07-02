@@ -15,7 +15,7 @@ Unreal eye tracking series and the corresponding info data were randomly generat
 
 ### How to use
 
-This repository provides a pipeline of eye tracking data processing, feature extraction, modeling and evaluation based on the framework of VECA. The components or configuration such as `/src/utils/eyeMovement.py` and `/src/config/settings.py` could be customized for related research.
+This repository provides all core components of the pipeline of eye tracking data processing, feature extraction, modeling and evaluation based on the framework of VECA. The components or configuration such as `/src/utils/eyeMovement.py` and `/src/config/settings.py` could be customized for related research.
 ```shell
 # train a specific model
 python train.py -m gbrt
