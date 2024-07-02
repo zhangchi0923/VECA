@@ -1,9 +1,7 @@
 import pandas as pd
 import numpy as np
-import os
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from tqdm import tqdm
 import itertools
 from utils.eyeMovement import DataUtils, EyeMovement
 from config.settings import *
@@ -58,3 +56,10 @@ def feature_preprocess(train_data: pd.DataFrame, normalize=False):
         X_test = scaler.transform(X_test)
     
     return X_train, X_test, y_train.astype(float).flatten(), y_test.astype(float).flatten(), np.array(cat_cols + num_cols)
+
+def diag(row):
+    if row['edu_0'] == 1:
+        return row['moca'] < 14
+    if row['edu_1'] == 1:
+        return row['moca'] < 20
+    return row['moca'] < 25

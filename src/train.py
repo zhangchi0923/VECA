@@ -1,6 +1,7 @@
 import argparse
 import numpy as np
 import joblib
+import pandas as pd
 from scipy.stats import pearsonr
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -10,11 +11,12 @@ from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, median_absolute_error
 
-from utils.preprocess import get_train_data, feature_preprocess
+from utils.preprocess import get_train_data, feature_preprocess, diag
 from utils.logger import get_logger
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
+    '-m',
     '--model',
     type=str,
     choices=['svr', 'mlp', 'gbrt', 'lasso'],
@@ -40,20 +42,17 @@ parser.add_argument(
 )
 parser.add_argument(
     '--importance',
-    type=bool,
-    default=False,
+    action='store_true',
     help="Specify whether to output feature importances."
 )
 parser.add_argument(
     '--shap',
-    type=bool,
-    default=False,
+    action='store_true',
     help='Specify whether to compute normalized shap values.'
 )
 parser.add_argument(
     '--roc',
-    type=bool,
-    default=False,
+    action='store_true',
     help='Specify whether to analyze education grouped classification ROCs.'
 )
 args = parser.parse_args()
@@ -152,4 +151,28 @@ if _shap:
     logger.info('--------------------------------------------------------')
     for col, imp in zip(cols[argsorts], norm_shap):
         logger.info(f'{col:20}{imp:.4f}')
+    logger.info('--------------------------------------------------------')
 
+if _roc:
+    logger.info('Computing education grouped ROCs.')
+    logger.info('--------------------------------------------------------')
+    data = pd.get_dummies(train_data, prefix_sep='_', columns=['gender', 'edu'])
+    data['diag'] = data.apply(lambda x: diag(x), axis=1)
+    edu_group_0 = data.loc[data['edu_0'] ==  1, :]
+    edu_group_1 = data.loc[data['edu_1'] ==  1, :]
+    edu_group_2 = data.loc[data['edu_2'] ==  1, :]
+
+    from sklearn.metrics import roc_auc_score
+    ai_score_0 = model.predict(edu_group_0[cols].values)
+    ai_score_1 = model.predict(edu_group_1[cols].values)
+    ai_score_2 = model.predict(edu_group_1[cols].values)
+    diag0 = edu_group_0['diag'].values
+    diag1 = edu_group_1['diag'].values
+    diag2 = edu_group_2['diag'].values
+    roc_0 = roc_auc_score(diag0, ai_score_0)
+    roc_1 = roc_auc_score(diag0, ai_score_0)
+    roc_2 = roc_auc_score(diag0, ai_score_0)
+    logger.info(f'Group 1 ROC: {roc_0}')
+    logger.info(f'Group 2 ROC: {roc_1}')
+    logger.info(f'Group 3 ROC: {roc_2}')
+    logger.info('--------------------------------------------------------')
