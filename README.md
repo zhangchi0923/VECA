@@ -30,7 +30,7 @@ python train.py -m gbrt --shap
 # check all options
 python train.py -h
 
-usage: train.py [-h] [-m {svr,mlp,gbrt,lasso}] [--info_dir INFO_DIR] [--log_dir LOG_DIR] [--model_dir MODEL_DIR] [-imp] [-s] [-r]
+usage: train.py [-h] [-m {svr,mlp,gbrt,lasso}] [--info_dir INFO_DIR] [--log_dir LOG_DIR] [--model_dir MODEL_DIR] [--importance] [--shap] [--roc]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -40,7 +40,7 @@ optional arguments:
   --log_dir LOG_DIR     Specify directory path of log files.
   --model_dir MODEL_DIR
                         Specify model persistent directory.
-  -imp, --importance    Specify whether to output feature importances.
-  -s, --shap            Specify whether to compute normalized shap values.
-  -r, --roc             Specify whether to analyze education grouped classification ROCs.
+  --importance          Specify whether to output feature importances.
+  --shap                Specify whether to compute normalized shap values.
+  --roc                 Specify whether to analyze education grouped classification ROCs.
 ```
